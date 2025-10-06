@@ -15,6 +15,9 @@ Environment variables (summary):
 CORS:
 - Backend is configured permissively for preview (allow_origins=["*"]). Restrict origins for production deployments.
 
+Local preview note:
+- Run the backend first on port 3001, then start the frontend on port 3000. The frontend will use REACT_APP_BACKEND_URL or fall back to http://localhost:3001.
+
 ## Backend (FastAPI) - Setup and Run
 
 Location: ai-coding-assistant-4392/backend_api
@@ -81,6 +84,8 @@ Setup summary:
 ```
 cd ai-coding-assistant-4393/frontend_ui
 cp .env.example .env    # optional; default points to http://localhost:3001
+# Optionally edit .env and set:
+# REACT_APP_BACKEND_URL=http://localhost:3001
 npm install
 npm start
 # Visit http://localhost:3000
@@ -113,10 +118,19 @@ npm start
    - Expect AI output rendered in the output card.
    - Network inspector should show POST http://localhost:3001/ask with { "prompt": "..." }.
 
-Troubleshooting:
-- 500 Server configuration error: Ensure GOOGLE_API_KEY is set/exported for the backend.
-- CORS errors: The backend is permissive by default; if modified, allow origin http://localhost:3000.
-- Network errors: Confirm ports 3000 (frontend) and 3001 (backend) are running and reachable.
+## Troubleshooting (quick)
+
+- Backend 500 (Server configuration error):
+  - Ensure GOOGLE_API_KEY is set/exported for the backend.
+  - Example (bash): `export $(cat ai-coding-assistant-4392/backend_api/.env | xargs)`
+- CORS errors in browser console:
+  - Backend is permissive by default; if modified, allow origin http://localhost:3000.
+  - Update CORSMiddleware in backend at src/api/main.py.
+- Frontend cannot reach backend:
+  - Confirm backend is running on http://localhost:3001 and frontend on http://localhost:3000.
+  - If using a custom backend URL, set REACT_APP_BACKEND_URL accordingly in ai-coding-assistant-4393/frontend_ui/.env.
+- Port already in use:
+  - Stop any conflicting service or change the port. If you change backend port, update REACT_APP_BACKEND_URL.
 
 ## Notes
 - No database is used in this project.
