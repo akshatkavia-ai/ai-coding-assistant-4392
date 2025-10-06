@@ -2,7 +2,18 @@
 
 This repository contains:
 - backend_api: FastAPI backend that proxies prompts to Google Gemini.
-- frontend_ui: React frontend (in a separate workspace) for sending prompts and viewing AI output.
+- frontend_ui: React frontend (separate workspace) for sending prompts and viewing AI output.
+
+Preview ports (local defaults):
+- Frontend UI: http://localhost:3000
+- Backend API: http://localhost:3001
+
+Environment variables (summary):
+- Backend (required): GOOGLE_API_KEY
+- Frontend (optional): REACT_APP_BACKEND_URL (defaults to http://localhost:3001)
+
+CORS:
+- Backend is configured permissively for preview (allow_origins=["*"]). Restrict origins for production deployments.
 
 ## Backend (FastAPI) - Setup and Run
 
@@ -18,7 +29,7 @@ cp .env.example .env
 # GOOGLE_API_KEY=your_google_api_key_here
 ```
 
-Note: The application reads GOOGLE_API_KEY from the environment. Ensure it is exported when running locally, e.g.:
+Note: The application requires GOOGLE_API_KEY and will return HTTP 500 if missing. Export the env when running locally, e.g.:
 
 ```
 export $(cat .env | xargs)
@@ -50,8 +61,6 @@ The API docs are available at:
   - Response:
     - { "output": "AI generated text" }
 
-CORS is permissive for preview; restrict origins in production.
-
 ### 5) Regenerate OpenAPI
 The backend includes a utility to export the OpenAPI schema to interfaces/openapi.json.
 
@@ -62,7 +71,52 @@ python -m src.api.generate_openapi
 This writes the schema to ai-coding-assistant-4392/backend_api/interfaces/openapi.json.
 
 ## Frontend (React)
-The frontend is located in a separate workspace (ai-coding-assistant-4393/frontend_ui). It targets the backend at http://localhost:3001 by default (ensure CORS is enabled as configured).
+
+Location: ai-coding-assistant-4393/frontend_ui
+
+- The frontend targets the backend at REACT_APP_BACKEND_URL, defaulting to http://localhost:3001 if not set.
+- Ensure the backend CORS setting allows the frontend origin (defaults to permissive for previews).
+
+Setup summary:
+```
+cd ai-coding-assistant-4393/frontend_ui
+cp .env.example .env    # optional; default points to http://localhost:3001
+npm install
+npm start
+# Visit http://localhost:3000
+```
+
+## End-to-End Test Steps (Manual)
+
+1) Start Backend:
+   ```
+   cd ai-coding-assistant-4392/backend_api
+   cp .env.example .env
+   # Set your actual Google API key in .env
+   export $(cat .env | xargs)
+   pip install -r requirements.txt
+   uvicorn src.api.main:app --host 0.0.0.0 --port 3001 --reload
+   ```
+   Verify health: curl http://localhost:3001/
+
+2) Start Frontend:
+   ```
+   cd ai-coding-assistant-4393/frontend_ui
+   cp .env.example .env  # optional; default OK for local
+   npm install
+   npm start
+   ```
+   Open http://localhost:3000 in your browser.
+
+3) Use the App:
+   - Type a prompt and click "Ask AI".
+   - Expect AI output rendered in the output card.
+   - Network inspector should show POST http://localhost:3001/ask with { "prompt": "..." }.
+
+Troubleshooting:
+- 500 Server configuration error: Ensure GOOGLE_API_KEY is set/exported for the backend.
+- CORS errors: The backend is permissive by default; if modified, allow origin http://localhost:3000.
+- Network errors: Confirm ports 3000 (frontend) and 3001 (backend) are running and reachable.
 
 ## Notes
 - No database is used in this project.
