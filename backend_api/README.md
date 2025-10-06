@@ -30,6 +30,20 @@ How to provide environment variables:
 
 Note: If GOOGLE_API_KEY is missing, the backend will return HTTP 500 for requests that require it (e.g., POST /ask).
 
+### Verify GOOGLE_API_KEY is set
+- Show current shell setting:
+  ```
+  echo "$GOOGLE_API_KEY"
+  ```
+  If empty, export it from your .env:
+  ```
+  export $(cat ai-coding-assistant-4392/backend_api/.env | xargs)
+  ```
+- If the key is not set or is invalid:
+  - GET / will still succeed (health check).
+  - POST /ask will return 500 with detail: "Server is missing configuration: GOOGLE_API_KEY is not set."
+  - Upstream errors from Gemini (e.g., invalid key) will surface as 502 with a descriptive message.
+
 ## Quickstart
 
 1) Create environment file and set GOOGLE_API_KEY
@@ -53,9 +67,23 @@ uvicorn src.api.main:app --host 0.0.0.0 --port 3001 --reload
 
 4) Endpoints
 - GET / : Health check (returns { "message": "Healthy" })
+  - Quick check:
+    ```
+    curl -s http://localhost:3001/ | jq .
+    ```
 - POST /ask : Send a prompt to Google Gemini (model: gemini-1.5-flash)
   - Request JSON: { "prompt": "your prompt" }
   - Response JSON: { "output": "AI generated text" }
+  - Sample cURL:
+    ```
+    curl -s -X POST http://localhost:3001/ask \
+      -H "Content-Type: application/json" \
+      -d '{"prompt":"Say hello from Gemini"}' | jq .
+    ```
+  - Expected errors:
+    - 400 if prompt is empty.
+    - 500 if GOOGLE_API_KEY is not set in the environment.
+    - 502 if Gemini returns an upstream error (e.g., invalid key) or on network timeouts.
 
 The React frontend calls POST /ask to obtain AI output.
 
@@ -65,7 +93,7 @@ For local development and previews, CORS is configured permissively:
 ```
 allow_origins=["*"]
 ```
-This is set in src/api/main.py via CORSMiddleware.
+This is set in src/api/main.py via CORSMiddleware and allows the frontend at http://localhost:3000 to call the backend by default.
 
 Production: Restrict CORS to your deployed frontend origin, for example:
 ```
@@ -77,6 +105,8 @@ allow_origins=["https://your-frontend.example.com"]
 - 500 on /ask (Server configuration error):
   - Ensure GOOGLE_API_KEY is set in the environment.
   - Example: `export $(cat ai-coding-assistant-4392/backend_api/.env | xargs)`
+- 502 on /ask (Upstream error/timeouts):
+  - Inspect message for details; often due to invalid/expired key or network issues.
 - CORS error in browser console:
   - Ensure CORSMiddleware allow_origins includes your frontend origin (http://localhost:3000 for local).
 - Frontend cannot reach backend:
@@ -93,6 +123,14 @@ python -m src.api.generate_openapi
 ```
 
 This writes the schema to ai-coding-assistant-4392/backend_api/interfaces/openapi.json.
+
+## End-to-end check (cross-link)
+
+- Backend: Follow this README to set GOOGLE_API_KEY, run uvicorn, verify:
+  - `curl http://localhost:3001/` returns `{ "message": "Healthy" }`
+  - `curl -X POST http://localhost:3001/ask ...` returns `{ "output": "..." }`
+- Frontend: See ai-coding-assistant-4393/frontend_ui/README.md to start the UI and configure REACT_APP_BACKEND_URL if needed.
+- In the browser Network tab, confirm POST http://localhost:3001/ask with body `{ "prompt": "..." }` and a 200 response.
 
 ## Notes
 

@@ -58,11 +58,21 @@ The API docs are available at:
 
 ### 4) Endpoints
 - GET /: Health check.
+  - Quick check:
+    ```
+    curl -s http://localhost:3001/ | jq .
+    ```
 - POST /ask: Send a prompt to Google Gemini (model: gemini-1.5-flash).
   - Request body:
     - { "prompt": "your prompt" }
   - Response:
     - { "output": "AI generated text" }
+  - Sample:
+    ```
+    curl -s -X POST http://localhost:3001/ask \
+      -H "Content-Type: application/json" \
+      -d '{"prompt":"Say hello from Gemini"}' | jq .
+    ```
 
 ### 5) Regenerate OpenAPI
 The backend includes a utility to export the OpenAPI schema to interfaces/openapi.json.
@@ -117,6 +127,14 @@ npm start
    - Type a prompt and click "Ask AI".
    - Expect AI output rendered in the output card.
    - Network inspector should show POST http://localhost:3001/ask with { "prompt": "..." }.
+
+## Cross-linked end-to-end check
+
+- Backend README: ai-coding-assistant-4392/backend_api/README.md
+  - Verify GOOGLE_API_KEY set, GET / health, POST /ask works
+- Frontend README: ai-coding-assistant-4393/frontend_ui/README.md
+  - Default REACT_APP_BACKEND_URL is http://localhost:3001; override for non-local if needed
+  - Troubleshoot using the browser Network tab; map 4xx/5xx to messages as documented
 
 ## Troubleshooting (quick)
 
